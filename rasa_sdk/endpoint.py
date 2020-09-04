@@ -120,6 +120,30 @@ def create_app(
         body = [{"name": k} for k in executor.actions.keys()]
         return response.json(body, status=200)
 
+    @app.get('/download-file/<file_id:str>')
+    async def download_file(request: Request) -> HTTPResponse:
+        from crawler.models import Attachment, get_session, close_session
+    
+        session = get_session()
+        attachment: Attachment = None
+        
+        try:
+            attachment = session.query(Attachment).filter_by(id=file_id).first()
+
+            if not attachment: 
+                body = {"error": 'Arquivo não encontrado', "action_name": e.action_name}
+                return response.json(body, status=400)
+
+        except Exception as err:
+            body = {"error": err.message, "action_name": e.action_name}
+            return response.json(body, status=400)
+        
+        finally:
+            close_session(session)
+        
+        return await response.file(attachment.path)
+
+
     return app
 
 
